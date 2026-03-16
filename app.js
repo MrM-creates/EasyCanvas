@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Set current year for copyright
+    const yearSpan = document.getElementById('current-year');
+    if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+
     // 1. Initialize Canvas
     const canvas = new fabric.Canvas('design-canvas', {
         backgroundColor: '#ffffff',
