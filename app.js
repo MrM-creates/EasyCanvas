@@ -419,6 +419,102 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Alignment Tools
+    document.getElementById('btn-align-left').addEventListener('click', () => {
+        const obj = canvas.getActiveObject();
+        if (obj) { obj.set({ left: 0 }); obj.setCoords(); canvas.renderAll(); }
+    });
+    document.getElementById('btn-align-center-h').addEventListener('click', () => {
+        const obj = canvas.getActiveObject();
+        if (obj) { canvas.centerObjectH(obj); obj.setCoords(); canvas.renderAll(); }
+    });
+    document.getElementById('btn-align-right').addEventListener('click', () => {
+        const obj = canvas.getActiveObject();
+        if (obj) { obj.set({ left: canvas.getWidth() - obj.getScaledWidth() }); obj.setCoords(); canvas.renderAll(); }
+    });
+    document.getElementById('btn-align-top').addEventListener('click', () => {
+        const obj = canvas.getActiveObject();
+        if (obj) { obj.set({ top: 0 }); obj.setCoords(); canvas.renderAll(); }
+    });
+    document.getElementById('btn-align-center-v').addEventListener('click', () => {
+        const obj = canvas.getActiveObject();
+        if (obj) { canvas.centerObjectV(obj); obj.setCoords(); canvas.renderAll(); }
+    });
+    document.getElementById('btn-align-bottom').addEventListener('click', () => {
+        const obj = canvas.getActiveObject();
+        if (obj) { obj.set({ top: canvas.getHeight() - obj.getScaledHeight() }); obj.setCoords(); canvas.renderAll(); }
+    });
+
+    // Smart Guides Logic
+    let smartGuidesEnabled = true;
+    const btnToggleGuides = document.getElementById('btn-toggle-guides');
+    if (btnToggleGuides) {
+        btnToggleGuides.addEventListener('click', () => {
+            smartGuidesEnabled = !smartGuidesEnabled;
+            btnToggleGuides.classList.toggle('active-style', smartGuidesEnabled);
+        });
+    }
+
+    const snapZone = 10;
+    let guideLines = [];
+
+    function drawGuide(axis, pos) {
+        const line = new fabric.Line(
+            axis === 'x' ? [pos, 0, pos, canvas.getHeight()] : [0, pos, canvas.getWidth(), pos],
+            { stroke: '#e11d48', strokeWidth: 1, selectable: false, evented: false, isGuide: true, opacity: 0.8 }
+        );
+        canvas.add(line);
+        guideLines.push(line);
+    }
+
+    function clearGuides() {
+        guideLines.forEach(l => canvas.remove(l));
+        guideLines = [];
+    }
+
+    canvas.on('object:moving', (e) => {
+        clearGuides();
+        if (!smartGuidesEnabled) return;
+
+        const obj = e.target;
+        const canvasW = canvas.getWidth();
+        const canvasH = canvas.getHeight();
+        const objW = obj.getScaledWidth();
+        const objH = obj.getScaledHeight();
+        
+        const centerX = canvasW / 2;
+        const centerY = canvasH / 2;
+        
+        const objCenterX = obj.left + objW / 2;
+        const objCenterY = obj.top + objH / 2;
+
+        // X Snapping
+        if (Math.abs(objCenterX - centerX) < snapZone) {
+            obj.set({ left: centerX - objW/2 });
+            drawGuide('x', centerX);
+        } else if (Math.abs(obj.left) < snapZone) {
+            obj.set({ left: 0 });
+            drawGuide('x', 0);
+        } else if (Math.abs(obj.left + objW - canvasW) < snapZone) {
+            obj.set({ left: canvasW - objW });
+            drawGuide('x', canvasW);
+        }
+
+        // Y Snapping
+        if (Math.abs(objCenterY - centerY) < snapZone) {
+            obj.set({ top: centerY - objH/2 });
+            drawGuide('y', centerY);
+        } else if (Math.abs(obj.top) < snapZone) {
+            obj.set({ top: 0 });
+            drawGuide('y', 0);
+        } else if (Math.abs(obj.top + objH - canvasH) < snapZone) {
+            obj.set({ top: canvasH - objH });
+            drawGuide('y', canvasH);
+        }
+    });
+
+    canvas.on('mouse:up', clearGuides);
+
     // Delete handling
     function deleteSelected() {
         const activeObjects = canvas.getActiveObjects();
@@ -465,6 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Loop backwards to show top objects first in the list
         for (let i = objects.length - 1; i >= 0; i--) {
             const obj = objects[i];
+            if (obj.isGuide) continue;
             const isActive = obj === activeObj;
             
             let iconSvg = '<svg class="layer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>';
