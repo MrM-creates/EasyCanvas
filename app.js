@@ -57,6 +57,31 @@ document.addEventListener('DOMContentLoaded', () => {
         '800x600': { w: 800, h: 600 }
     };
 
+    let customTemplates = JSON.parse(localStorage.getItem('easycanvas_custom_templates')) || [];
+
+    // Initialize custom templates in dropdown
+    function loadCustomTemplatesToDropdown() {
+        const select = document.getElementById('template-select');
+        // Remove old custom options and optgroup first
+        const oldOptGroup = document.getElementById('custom-templates-group');
+        if (oldOptGroup) select.removeChild(oldOptGroup);
+
+        if (customTemplates.length > 0) {
+            const optgroup = document.createElement('optgroup');
+            optgroup.id = 'custom-templates-group';
+            optgroup.label = 'Custom Templates';
+            
+            customTemplates.forEach((tpl, index) => {
+                const opt = document.createElement('option');
+                opt.value = `custom_tpl_${index}`;
+                opt.textContent = tpl.name;
+                optgroup.appendChild(opt);
+            });
+            select.appendChild(optgroup);
+        }
+    }
+    loadCustomTemplatesToDropdown();
+
     let currentScale = 1;
 
     // 2. Responsive Canvas Sizing (visual scale)
@@ -94,6 +119,32 @@ document.addEventListener('DOMContentLoaded', () => {
             sizeHint.classList.add('hidden');
             customSizeInputs.classList.remove('hidden');
             setCanvasSize(parseInt(customWidthInput.value), parseInt(customHeightInput.value));
+        } else if (val.startsWith('custom_tpl_')) {
+            // Load custom template
+            const index = parseInt(val.split('_')[2]);
+            const tpl = customTemplates[index];
+            if (tpl && tpl.data) {
+                 canvas.clear();
+                 canvas.loadFromJSON(tpl.data, () => {
+                      if (tpl.data.width && tpl.data.height) {
+                          setCanvasSize(tpl.data.width, tpl.data.height);
+                          customWidthInput.value = tpl.data.width;
+                          customHeightInput.value = tpl.data.height;
+                          sizeHint.textContent = `${tpl.data.width} x ${tpl.data.height} px`;
+                      } else {
+                          canvas.renderAll();
+                      }
+                      if (canvas.backgroundColor && typeof canvas.backgroundColor === 'string') {
+                          docBgColor.value = canvas.backgroundColor;
+                          docBgHex.textContent = canvas.backgroundColor.toUpperCase();
+                      }
+                      
+                      sizeHint.classList.remove('hidden');
+                      customSizeInputs.classList.add('hidden');
+                      renderLayersList();
+                      updatePropertiesPanel();
+                 });
+            }
         } else {
             sizeHint.classList.remove('hidden');
             customSizeInputs.classList.add('hidden');
@@ -813,6 +864,47 @@ document.addEventListener('DOMContentLoaded', () => {
                    }
               };
               reader.readAsText(e.target.files[0]);
+         }
+    });
+
+    // 11.5 Save Custom Template Logic
+    const modalTemplate = document.getElementById('modal-template');
+    const inputTplName = document.getElementById('template-name-input');
+    
+    document.getElementById('btn-save-template').addEventListener('click', () => {
+         // Show modal
+         modalTemplate.classList.remove('hidden');
+         inputTplName.value = '';
+         inputTplName.focus();
+    });
+
+    document.getElementById('btn-cancel-template').addEventListener('click', () => {
+         modalTemplate.classList.add('hidden');
+    });
+
+    document.getElementById('btn-confirm-template').addEventListener('click', () => {
+         const name = inputTplName.value.trim() || 'Untitled Template';
+         canvas.discardActiveObject();
+         
+         const json = canvas.toJSON(['width', 'height']);
+         
+         customTemplates.push({
+             name: name,
+             data: json
+         });
+         
+         try {
+             localStorage.setItem('easycanvas_custom_templates', JSON.stringify(customTemplates));
+             loadCustomTemplatesToDropdown();
+             
+             // Select the newly added template in dropdown visually
+             templateSelect.value = `custom_tpl_${customTemplates.length - 1}`;
+             
+             modalTemplate.classList.add('hidden');
+             alert(`Template "${name}" saved successfully!`);
+         } catch (e) {
+             console.error('Failed to save to localStorage:', e);
+             alert('Error saving template. Local storage might be full.');
          }
     });
 
