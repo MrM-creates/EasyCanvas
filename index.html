@@ -221,6 +221,23 @@
                             </select>
                         </div>
 
+                        <div class="prop-group text-prop hidden" id="prop-font-size">
+                            <div class="slider-header">
+                                <label>Font Size</label>
+                                <span id="obj-font-size-val">32px</span>
+                            </div>
+                            <input type="range" id="obj-font-size" min="8" max="200" step="1" value="32">
+                        </div>
+
+                        <div class="prop-group text-prop hidden" id="prop-font-style">
+                            <label>Format</label>
+                            <div class="flex-row" style="gap: 4px;">
+                                <button id="btn-text-bold" class="btn btn-secondary btn-icon" style="flex: 1; font-weight: bold; padding: 6px;" title="Bold">B</button>
+                                <button id="btn-text-italic" class="btn btn-secondary btn-icon" style="flex: 1; font-style: italic; font-family: 'Times New Roman', serif; padding: 6px;" title="Italic">I</button>
+                                <button id="btn-text-underline" class="btn btn-secondary btn-icon" style="flex: 1; text-decoration: underline; padding: 6px;" title="Underline">U</button>
+                            </div>
+                        </div>
+
                         <div class="prop-group line-prop hidden" id="prop-stroke-width">
                              <div class="slider-header">
                                  <label>Stroke Width</label>

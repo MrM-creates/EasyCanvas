@@ -37,6 +37,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const objOpacityVal = document.getElementById('obj-opacity-val');
     const propFontFamily = document.getElementById('prop-font-family');
     const objFontFamily = document.getElementById('obj-font-family');
+    const propFontSize = document.getElementById('prop-font-size');
+    const objFontSize = document.getElementById('obj-font-size');
+    const objFontSizeVal = document.getElementById('obj-font-size-val');
+    const propFontStyle = document.getElementById('prop-font-style');
+    const btnTextBold = document.getElementById('btn-text-bold');
+    const btnTextItalic = document.getElementById('btn-text-italic');
+    const btnTextUnderline = document.getElementById('btn-text-underline');
     const propStrokeWidth = document.getElementById('prop-stroke-width');
     const objStrokeWidth = document.getElementById('obj-stroke-width');
     const objStrokeWidthVal = document.getElementById('obj-stroke-width-val');
@@ -276,8 +283,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (activeObj.type === 'i-text' || activeObj.type === 'text') {
                 propFontFamily.classList.remove('hidden');
                 objFontFamily.value = activeObj.fontFamily;
+                
+                if (propFontSize) propFontSize.classList.remove('hidden');
+                if (objFontSize) {
+                    objFontSize.value = activeObj.fontSize || 32;
+                    if (objFontSizeVal) objFontSizeVal.textContent = (activeObj.fontSize || 32) + 'px';
+                }
+                
+                if (propFontStyle) propFontStyle.classList.remove('hidden');
+                if (btnTextBold) {
+                    const isBold = activeObj.fontWeight === 'bold' || activeObj.fontWeight >= 700;
+                    btnTextBold.classList.toggle('active-style', isBold);
+                }
+                if (btnTextItalic) {
+                    btnTextItalic.classList.toggle('active-style', activeObj.fontStyle === 'italic');
+                }
+                if (btnTextUnderline) {
+                    btnTextUnderline.classList.toggle('active-style', !!activeObj.underline);
+                }
             } else {
                 propFontFamily.classList.add('hidden');
+                if (propFontSize) propFontSize.classList.add('hidden');
+                if (propFontStyle) propFontStyle.classList.add('hidden');
             }
 
             // Line / Stroke width specific
@@ -333,6 +360,54 @@ document.addEventListener('DOMContentLoaded', () => {
             canvas.renderAll();
         }
     });
+
+    if (objFontSize) {
+        objFontSize.addEventListener('input', (e) => {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && (activeObj.type === 'i-text' || activeObj.type === 'text')) {
+                const val = parseInt(e.target.value);
+                if (objFontSizeVal) objFontSizeVal.textContent = val + 'px';
+                activeObj.set('fontSize', val);
+                canvas.renderAll();
+            }
+        });
+    }
+
+    if (btnTextBold) {
+        btnTextBold.addEventListener('click', () => {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && (activeObj.type === 'i-text' || activeObj.type === 'text')) {
+                const isBold = activeObj.fontWeight === 'bold' || activeObj.fontWeight >= 700;
+                activeObj.set('fontWeight', isBold ? 'normal' : 'bold');
+                btnTextBold.classList.toggle('active-style', !isBold);
+                canvas.renderAll();
+            }
+        });
+    }
+
+    if (btnTextItalic) {
+        btnTextItalic.addEventListener('click', () => {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && (activeObj.type === 'i-text' || activeObj.type === 'text')) {
+                const isItalic = activeObj.fontStyle === 'italic';
+                activeObj.set('fontStyle', isItalic ? 'normal' : 'italic');
+                btnTextItalic.classList.toggle('active-style', !isItalic);
+                canvas.renderAll();
+            }
+        });
+    }
+
+    if (btnTextUnderline) {
+        btnTextUnderline.addEventListener('click', () => {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && (activeObj.type === 'i-text' || activeObj.type === 'text')) {
+                const isUnderline = activeObj.underline;
+                activeObj.set('underline', !isUnderline);
+                btnTextUnderline.classList.toggle('active-style', !isUnderline);
+                canvas.renderAll();
+            }
+        });
+    }
 
     objStrokeWidth.addEventListener('input', (e) => {
         const activeObj = canvas.getActiveObject();
