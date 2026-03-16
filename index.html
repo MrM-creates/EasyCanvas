@@ -194,11 +194,40 @@
                         <h3 class="section-title">Selection Properties</h3>
                         
                         <div class="prop-group">
-                            <label>Fill / Stroke Color</label>
+                            <label>Fill Color</label>
                             <div class="color-picker-wrapper">
                                 <input type="color" id="obj-fill-color">
                                 <span class="color-hex" id="obj-fill-hex">#000000</span>
                             </div>
+                        </div>
+
+                        <div class="prop-group stroke-prop" id="prop-border">
+                            <div class="flex-row" style="justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <label style="margin: 0;">Border</label>
+                                <label class="switch" style="margin: 0;">
+                                    <input type="checkbox" id="toggle-border">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div id="border-settings" class="hidden">
+                                <div class="color-picker-wrapper" style="margin-bottom: 8px;">
+                                    <input type="color" id="obj-stroke-color">
+                                    <span class="color-hex" id="obj-stroke-hex">#000000</span>
+                                </div>
+                                <div class="slider-header">
+                                    <label>Thickness</label>
+                                    <span id="obj-stroke-width-val">2px</span>
+                                </div>
+                                <input type="range" id="obj-stroke-width" min="1" max="50" step="1" value="2">
+                            </div>
+                        </div>
+
+                        <div class="prop-group rect-prop hidden" id="prop-corner-radius">
+                            <div class="slider-header">
+                                <label>Corner Radius</label>
+                                <span id="obj-corner-radius-val">0px</span>
+                            </div>
+                            <input type="range" id="obj-corner-radius" min="0" max="200" step="1" value="0">
                         </div>
 
                         <div class="prop-group has-slider">
@@ -244,13 +273,7 @@
                             </div>
                         </div>
 
-                        <div class="prop-group line-prop hidden" id="prop-stroke-width">
-                             <div class="slider-header">
-                                 <label>Stroke Width</label>
-                                 <span id="obj-stroke-width-val">2px</span>
-                             </div>
-                             <input type="range" id="obj-stroke-width" min="1" max="20" step="1" value="2">
-                        </div>
+                        <!-- prop-stroke-width was removed as it is now part of the Border group -->
 
                         <div class="prop-group alignment-prop" id="prop-alignment">
                             <label>Align to Canvas</label>

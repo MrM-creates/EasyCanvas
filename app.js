@@ -44,9 +44,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnTextBold = document.getElementById('btn-text-bold');
     const btnTextItalic = document.getElementById('btn-text-italic');
     const btnTextUnderline = document.getElementById('btn-text-underline');
-    const propStrokeWidth = document.getElementById('prop-stroke-width');
+    
+    // Border & Corner Radius Elements
+    const propBorder = document.getElementById('prop-border');
+    const toggleBorder = document.getElementById('toggle-border');
+    const borderSettings = document.getElementById('border-settings');
+    const objStrokeColor = document.getElementById('obj-stroke-color');
+    const objStrokeHex = document.getElementById('obj-stroke-hex');
     const objStrokeWidth = document.getElementById('obj-stroke-width');
     const objStrokeWidthVal = document.getElementById('obj-stroke-width-val');
+    
+    const propCornerRadius = document.getElementById('prop-corner-radius');
+    const objCornerRadius = document.getElementById('obj-corner-radius');
+    const objCornerRadiusVal = document.getElementById('obj-corner-radius-val');
 
     // Default Size (Instagram Post)
     const templates = {
@@ -315,13 +325,11 @@ document.addEventListener('DOMContentLoaded', () => {
             panelDocument.classList.add('hidden');
             panelObject.classList.remove('hidden');
 
-            // Fill Color / Stroke Color logic
-            const colorTarget = activeObj.type === 'line' || activeObj.type === 'path' ? 'stroke' : 'fill';
-            const colorVal = activeObj[colorTarget];
-
-            if (colorVal && typeof colorVal === 'string') {
-                objFillColor.value = colorVal;
-                objFillHex.textContent = colorVal.toUpperCase();
+            // Fill Color (Removed stroke mixing from here as we have dedicated border controls)
+            const fillVal = activeObj.fill;
+            if (fillVal && typeof fillVal === 'string') {
+                objFillColor.value = fillVal;
+                objFillHex.textContent = fillVal.toUpperCase();
             } else {
                 objFillHex.textContent = 'MIXED';
             }
@@ -358,13 +366,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (propFontStyle) propFontStyle.classList.add('hidden');
             }
 
-            // Line / Stroke width specific
-            if (activeObj.type === 'line' || activeObj.type === 'path') {
-                propStrokeWidth.classList.remove('hidden');
-                objStrokeWidth.value = activeObj.strokeWidth || 1;
-                objStrokeWidthVal.textContent = (activeObj.strokeWidth || 1) + 'px';
+            // Border specific logic
+            // Hide border for text or images by default (optional, but good UX)
+            if (activeObj.type !== 'image' && activeObj.type !== 'i-text' && activeObj.type !== 'text') {
+                propBorder.classList.remove('hidden');
+                
+                const hasStroke = !!activeObj.stroke && activeObj.strokeWidth > 0;
+                toggleBorder.checked = hasStroke;
+                
+                if (hasStroke) {
+                    borderSettings.classList.remove('hidden');
+                    objStrokeColor.value = activeObj.stroke || '#000000';
+                    objStrokeHex.textContent = (activeObj.stroke || '#000000').toUpperCase();
+                    objStrokeWidth.value = activeObj.strokeWidth || 1;
+                    objStrokeWidthVal.textContent = (activeObj.strokeWidth || 1) + 'px';
+                } else {
+                    borderSettings.classList.add('hidden');
+                }
             } else {
-                propStrokeWidth.classList.add('hidden');
+                propBorder.classList.add('hidden');
+            }
+
+            // Corner Radius (Rect only)
+            if (activeObj.type === 'rect') {
+                propCornerRadius.classList.remove('hidden');
+                objCornerRadius.value = activeObj.rx || 0;
+                objCornerRadiusVal.textContent = (activeObj.rx || 0) + 'px';
+            } else {
+                propCornerRadius.classList.add('hidden');
             }
             
         } else {
@@ -384,15 +413,71 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeObj) {
             const val = e.target.value;
             objFillHex.textContent = val.toUpperCase();
-            if (activeObj.type === 'line' || activeObj.type === 'path') {
-                 activeObj.set('stroke', val);
-                 if (activeObj.type === 'path') activeObj.set('fill', val);
-            } else {
-                 activeObj.set('fill', val);
-            }
+            activeObj.set('fill', val);
             canvas.renderAll();
         }
     });
+
+    // Border Properties logic
+    if (toggleBorder) {
+        toggleBorder.addEventListener('change', (e) => {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                if (e.target.checked) {
+                    activeObj.set({
+                        stroke: objStrokeColor.value || '#000000',
+                        strokeWidth: parseInt(objStrokeWidth.value) || 2
+                    });
+                    borderSettings.classList.remove('hidden');
+                } else {
+                    activeObj.set({ strokeWidth: 0, stroke: null });
+                    borderSettings.classList.add('hidden');
+                }
+                if(activeObj.type === 'line' && !e.target.checked){
+                    // Keep line visible even if border toggled off (special case)
+                    activeObj.set({stroke: objFillColor.value, strokeWidth: 2}); 
+                }
+                canvas.renderAll();
+            }
+        });
+    }
+
+    if (objStrokeColor) {
+        objStrokeColor.addEventListener('input', (e) => {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                const val = e.target.value;
+                objStrokeHex.textContent = val.toUpperCase();
+                activeObj.set('stroke', val);
+                canvas.renderAll();
+            }
+        });
+    }
+
+    if (objStrokeWidth) {
+        objStrokeWidth.addEventListener('input', (e) => {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj) {
+                const val = parseInt(e.target.value);
+                objStrokeWidthVal.textContent = val + 'px';
+                activeObj.set('strokeWidth', val);
+                canvas.renderAll();
+            }
+        });
+    }
+
+    // Corner Radius logic
+    if (objCornerRadius) {
+        objCornerRadius.addEventListener('input', (e) => {
+            const activeObj = canvas.getActiveObject();
+            if (activeObj && activeObj.type === 'rect') {
+                const val = parseInt(e.target.value);
+                objCornerRadiusVal.textContent = val + 'px';
+                activeObj.set({ rx: val, ry: val });
+                canvas.renderAll();
+            }
+        });
+    }
 
     objOpacity.addEventListener('input', (e) => {
         const activeObj = canvas.getActiveObject();
@@ -459,16 +544,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    objStrokeWidth.addEventListener('input', (e) => {
-        const activeObj = canvas.getActiveObject();
-        if (activeObj && (activeObj.type === 'line' || activeObj.type === 'path')) {
-             const val = parseInt(e.target.value);
-             objStrokeWidthVal.textContent = val + 'px';
-             activeObj.set('strokeWidth', val);
-             canvas.renderAll();
-        }
-    });
 
     // Alignment Tools
     document.getElementById('btn-align-left').addEventListener('click', () => {
