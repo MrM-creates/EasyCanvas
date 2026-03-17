@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('add-rect').addEventListener('click', () => {
         const rect = new fabric.Rect({
             width: 200, height: 200, fill: '#3b82f6', rx: 10, ry: 10,
-            name: 'Rectangle'
+            name: 'Rectangle', strokeUniform: true
         });
         centerObject(rect);
     });
@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('add-circle').addEventListener('click', () => {
         const circle = new fabric.Circle({
             radius: 100, fill: '#f43f5e',
-            name: 'Circle'
+            name: 'Circle', strokeUniform: true
         });
         centerObject(circle);
     });
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('add-triangle').addEventListener('click', () => {
         const triangle = new fabric.Triangle({
             width: 200, height: 200, fill: '#10b981',
-            name: 'Triangle'
+            name: 'Triangle', strokeUniform: true
         });
         centerObject(triangle);
     });
@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ], {
             fill: '#f59e0b',
             left: 0, top: 0,
-            name: 'Star'
+            name: 'Star', strokeUniform: true
         });
         centerObject(star);
     });
@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ], {
             fill: '#8b5cf6',
             left: 0, top: 0,
-            name: 'Polygon'
+            name: 'Polygon', strokeUniform: true
         });
         centerObject(hex);
     });
@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
             hasControls: true,
             hasBorders: true,
             padding: 10, // Easier to grab
-            name: 'Line'
+            name: 'Line', strokeUniform: true
         });
         centerObject(line);
     });
@@ -299,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
             strokeWidth: 4,
             selectable: true,
             padding: 10,
-            name: 'Arrow'
+            name: 'Arrow', strokeUniform: true
         });
         // We need to set fill of triangle part, we can just stroke everything for now
         arrow.set({fill: '#1e293b', strokeWidth: 2});
@@ -726,14 +726,39 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-delete').addEventListener('click', deleteSelected);
     
     document.addEventListener('keydown', (e) => {
+        // Prevent action if editing text or focusing on inputs
+        const activeObj = canvas.getActiveObject();
+        if (activeObj && activeObj.isEditing) return;
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+
         if (e.key === 'Delete' || e.key === 'Backspace') {
-            // Prevent deletion if editing text
-            const activeObj = canvas.getActiveObject();
-            if (activeObj && activeObj.isEditing) return;
-            // Also ignore if focusing on input fields
-            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-            
             deleteSelected();
+        } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            if (!activeObj) return;
+            
+            e.preventDefault(); // Prevent browser scrolling
+
+            const step = e.shiftKey ? 10 : 1;
+            
+            // If multiple objects are selected, move them all
+            const objectsToMove = activeObj.type === 'activeSelection' ? activeObj.getObjects() : [activeObj];
+
+            switch(e.key) {
+                case 'ArrowUp':
+                    activeObj.set('top', activeObj.top - step);
+                    break;
+                case 'ArrowDown':
+                    activeObj.set('top', activeObj.top + step);
+                    break;
+                case 'ArrowLeft':
+                    activeObj.set('left', activeObj.left - step);
+                    break;
+                case 'ArrowRight':
+                    activeObj.set('left', activeObj.left + step);
+                    break;
+            }
+            activeObj.setCoords(); // Update object interactive bounding box mathematically
+            canvas.renderAll();    // Re-draw canvas
         }
     });
 
