@@ -45,6 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnTextItalic = document.getElementById('btn-text-italic');
     const btnTextUnderline = document.getElementById('btn-text-underline');
     
+    // Fill toggle Elements
+    const propFill = document.getElementById('prop-fill');
+    const toggleFill = document.getElementById('toggle-fill');
+    const fillSettings = document.getElementById('fill-settings');
+
     // Border & Corner Radius Elements
     const propBorder = document.getElementById('prop-border');
     const toggleBorder = document.getElementById('toggle-border');
@@ -327,11 +332,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Fill Color (Removed stroke mixing from here as we have dedicated border controls)
             const fillVal = activeObj.fill;
-            if (fillVal && typeof fillVal === 'string') {
-                objFillColor.value = fillVal;
-                objFillHex.textContent = fillVal.toUpperCase();
+            if (activeObj.type === 'line' || activeObj.type === 'path') {
+                if (propFill) propFill.classList.add('hidden');
             } else {
-                objFillHex.textContent = 'MIXED';
+                if (propFill) propFill.classList.remove('hidden');
+                const hasFill = !!fillVal && fillVal !== 'transparent';
+                if (toggleFill) toggleFill.checked = hasFill;
+                
+                if (hasFill) {
+                    if (fillSettings) fillSettings.classList.remove('hidden');
+                    if (typeof fillVal === 'string') {
+                        objFillColor.value = fillVal;
+                        objFillHex.textContent = fillVal.toUpperCase();
+                    } else {
+                        objFillHex.textContent = 'MIXED';
+                    }
+                } else {
+                    if (fillSettings) fillSettings.classList.add('hidden');
+                }
             }
 
             // Opacity
@@ -408,6 +426,33 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.on('selection:cleared', updatePropertiesPanel);
 
     // 6. Object Properties Updates
+    if (toggleFill) {
+         toggleFill.addEventListener('change', (e) => {
+              const activeObj = canvas.getActiveObject();
+              if (activeObj) {
+                   if (e.target.checked) {
+                        activeObj.set('fill', objFillColor.value || '#000000');
+                        fillSettings.classList.remove('hidden');
+                   } else {
+                        // Safety check: Don't allow both fill and border to be off
+                        const hasStroke = !!activeObj.stroke && activeObj.strokeWidth > 0;
+                        if (!hasStroke) {
+                             activeObj.set({ strokeWidth: 2, stroke: '#000000' });
+                             if (toggleBorder) toggleBorder.checked = true;
+                             if (borderSettings) borderSettings.classList.remove('hidden');
+                             if (objStrokeColor) objStrokeColor.value = '#000000';
+                             if (objStrokeHex) objStrokeHex.textContent = '#000000';
+                             if (objStrokeWidth) objStrokeWidth.value = 2;
+                             if (objStrokeWidthVal) objStrokeWidthVal.textContent = '2px';
+                        }
+                        activeObj.set('fill', 'transparent');
+                        fillSettings.classList.add('hidden');
+                   }
+                   canvas.renderAll();
+              }
+         });
+    }
+
     objFillColor.addEventListener('input', (e) => {
         const activeObj = canvas.getActiveObject();
         if (activeObj) {
@@ -430,6 +475,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     borderSettings.classList.remove('hidden');
                 } else {
+                    // Safety check: Don't allow both fill and border to be off
+                    const hasFill = !!activeObj.fill && activeObj.fill !== 'transparent';
+                    if (!hasFill && activeObj.type !== 'line') {
+                         activeObj.set('fill', objFillColor.value || '#000000');
+                         if (toggleFill) toggleFill.checked = true;
+                         if (fillSettings) fillSettings.classList.remove('hidden');
+                    }
                     activeObj.set({ strokeWidth: 0, stroke: null });
                     borderSettings.classList.add('hidden');
                 }
@@ -573,11 +625,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Smart Guides Logic
     let smartGuidesEnabled = true;
+    let gridSnapEnabled = false;
+    const GRID_SIZE = 20;
+
     const btnToggleGuides = document.getElementById('btn-toggle-guides');
+    const btnToggleGrid = document.getElementById('btn-toggle-grid');
+
     if (btnToggleGuides) {
         btnToggleGuides.addEventListener('click', () => {
             smartGuidesEnabled = !smartGuidesEnabled;
             btnToggleGuides.classList.toggle('active-style', smartGuidesEnabled);
+        });
+    }
+
+    if (btnToggleGrid) {
+        btnToggleGrid.addEventListener('click', () => {
+            gridSnapEnabled = !gridSnapEnabled;
+            btnToggleGrid.classList.toggle('active-style', gridSnapEnabled);
         });
     }
 
@@ -600,9 +664,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     canvas.on('object:moving', (e) => {
         clearGuides();
+        const obj = e.target;
+
+        if (gridSnapEnabled) {
+            obj.set({
+                left: Math.round(obj.left / GRID_SIZE) * GRID_SIZE,
+                top: Math.round(obj.top / GRID_SIZE) * GRID_SIZE
+            });
+        }
+
         if (!smartGuidesEnabled) return;
 
-        const obj = e.target;
         const canvasW = canvas.getWidth();
         const canvasH = canvas.getHeight();
         const objW = obj.getScaledWidth();
@@ -838,6 +910,33 @@ document.addEventListener('DOMContentLoaded', () => {
         link.click();
         document.body.removeChild(link);
     });
+
+    const btnExportJpg = document.getElementById('btn-export-jpg');
+    if (btnExportJpg) {
+        btnExportJpg.addEventListener('click', () => {
+             canvas.discardActiveObject();
+             canvas.renderAll();
+             
+             let multiplier = 1;
+             const qualitySelect = document.getElementById('export-quality');
+             if (qualitySelect) {
+                 multiplier = parseInt(qualitySelect.value) || 1;
+             }
+             
+             const dataURL = canvas.toDataURL({
+                 format: 'jpeg',
+                 quality: 1, // JPG quality
+                 multiplier: multiplier
+             });
+             
+             const link = document.createElement('a');
+             link.download = `design-export-${Date.now()}.jpg`;
+             link.href = dataURL;
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+        });
+    }
 
     // 10. Image Upload & Drag Drop
     function addImageToCanvas(url) {
